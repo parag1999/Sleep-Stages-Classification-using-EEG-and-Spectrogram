@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-
+import numpy as np
 import mne
 from mne.datasets.sleep_physionet.age import fetch_data
 
@@ -39,45 +39,54 @@ def scipy_spec(X, sf):
     plt.show()
 
 
-def get_sleep_data():
-    ALICE, BOB = 0, 1
-    [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
-    
-    raw_train = mne.io.read_raw_edf(alice_files[0])
-    
-    annot_train = mne.read_annotations(alice_files[1])
-    
-    raw_train.set_annotations(annot_train, emit_warning=False)
-    
+def get_sleep_data(no_of_people):
+    no_of_people %= 20
+    people = [i for i in range(no_of_people)]
+    sf = 100
     annotation_desc_2_event_id = {'Sleep stage W': 1,
                                   'Sleep stage 1': 2,
                                   'Sleep stage 2': 3,
                                   'Sleep stage 3': 4,
                                   'Sleep stage 4': 4,
                                   'Sleep stage R': 5}
-    
-    events_train, _ = mne.events_from_annotations(
-        raw_train, event_id=annotation_desc_2_event_id, chunk_duration=30.)
-    
     event_id = {'Sleep stage W': 1,
                 'Sleep stage 1': 2,
                 'Sleep stage 2': 3,
                 'Sleep stage 3/4': 4,
                 'Sleep stage R': 5}
     
-    tmax = 30. - 1. / raw_train.info['sfreq']  # tmax in included
+    tmax = 30. - 1. / sf
     
-    epochs_train = mne.Epochs(raw=raw_train, events=events_train,
-                              event_id=event_id, tmin=0., tmax=tmax, baseline=None)
+    files = fetch_data(subjects=people, recording=[1])
     
-    X = (epochs_train.get_data(picks="eeg"))[:,0,:]
-    Y = epochs_train.events[:, 2]
+    count = 0
+    for file in files:
+        raw = mne.io.read_raw_edf(file[0])
+        annot = mne.read_annotations(file[1])
+        raw.set_annotations(annot, emit_warning=False)
+        events, _ = mne.events_from_annotations(
+            raw, event_id=annotation_desc_2_event_id, chunk_duration=30.)
+        epochs = mne.Epochs(raw=raw, events=events,
+                                  event_id=event_id, tmin=0., tmax=tmax, baseline=None)
+        
+        if count == 0:
+            X = (epochs.get_data(picks="eeg"))[:,0,:]
+            Y = epochs.events[:, 2]
+            count += 1
+        else:
+            x = (epochs.get_data(picks="eeg"))[:,0,:]
+            y = epochs.events[:, 2]
+            X = np.concatenate((X, x), axis=0)
+            Y = np.concatenate((Y, y), axis=0)
+        
+    #X = (epochs_test.get_data(picks="eeg"))[:,0,:]
+    #Y = epochs_test.events[:, 2]
     
     return X, Y
 
 
 if __name__ == "__main__":
-    X, Y = get_sleep_data()
+    X, Y = get_sleep_data(no_of_people = 4)
     lspopt_spec(X[0], 100)
     matplot_spec(X[0], 100)
     scipy_spec(X[0], 100)
