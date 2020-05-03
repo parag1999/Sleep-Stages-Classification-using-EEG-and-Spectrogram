@@ -50,4 +50,5 @@ def csv_to_dict():
 if __name__ == "__main__":
     a = csv_to_dict()
     #Open it in spyder and view in variable explorer
+    #Use it for simple time series data experiments
     
