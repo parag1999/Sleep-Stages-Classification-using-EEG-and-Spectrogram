@@ -1,1 +1,1 @@
-# Sleep_Stages_Classification_using_EEG_and_Spectrogram
+# Sleep-Stages-Classification-using-EEG-and-Spectrogram
